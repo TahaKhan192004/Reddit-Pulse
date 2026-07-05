@@ -126,17 +126,31 @@ export default async function OverviewPage({
                 />
               </label>
 
-              <label className="text-sm flex flex-col gap-1">
-                <span className="text-xs text-muted">Limit per target</span>
-                <input
-                  type="number"
-                  name="limit_per_target"
-                  min={1}
-                  max={100}
-                  defaultValue={config.limit_per_target}
-                  className={inputClass}
-                />
-              </label>
+              <div className="grid grid-cols-2 gap-2">
+                <label className="text-sm flex flex-col gap-1">
+                  <span className="text-xs text-muted">Limit per target</span>
+                  <input
+                    type="number"
+                    name="limit_per_target"
+                    min={1}
+                    max={100}
+                    defaultValue={config.limit_per_target}
+                    className={inputClass}
+                  />
+                </label>
+
+                <label className="text-sm flex flex-col gap-1">
+                  <span className="text-xs text-muted">Max posts/run</span>
+                  <input
+                    type="number"
+                    name="max_posts_per_run"
+                    min={1}
+                    max={500}
+                    defaultValue={config.max_posts_per_run}
+                    className={inputClass}
+                  />
+                </label>
+              </div>
 
               <label className="text-sm flex flex-col gap-1">
                 <span className="text-xs text-muted">Time filter</span>

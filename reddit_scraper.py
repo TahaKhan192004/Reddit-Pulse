@@ -135,7 +135,7 @@ def _post_from_child(child: dict[str, Any]) -> dict[str, Any] | None:
         "score": data.get("score", 0),
         "num_comments": data.get("num_comments", 0),
         "permalink": permalink,
-        "selftext": selftext[:400],
+        "selftext": selftext[:5000],
         "url": data.get("url", ""),
         "created_utc": data.get("created_utc"),
         "subreddit": data.get("subreddit", ""),

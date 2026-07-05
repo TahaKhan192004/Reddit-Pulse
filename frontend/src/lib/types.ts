@@ -26,6 +26,7 @@ export interface ConfigRow {
   scheduled_times: string[];
   times_per_day: number;
   limit_per_target: number;
+  max_posts_per_run: number;
   time_filter: "day" | "week" | "month" | "year" | "all";
   last_run_at: string | null;
   updated_at: string;

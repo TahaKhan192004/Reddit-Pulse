@@ -15,13 +15,18 @@ CANDIDATE_LIMIT_CAP = 100
 def run(config: dict[str, Any]) -> int:
     limit = config["limit_per_target"]
     time_filter = config["time_filter"]
+    max_posts = config.get("max_posts_per_run", 50)
     candidate_limit = min(limit * CANDIDATE_MULTIPLIER, CANDIDATE_LIMIT_CAP)
 
     targets = db.get_active_targets("phrase")
-    print(f"[phrase] {len(targets)} active phrase(s)")
+    print(f"[phrase] {len(targets)} active phrase(s), cap {max_posts} post(s)/run")
 
     total = 0
     for target in targets:
+        if total >= max_posts:
+            print(f"[phrase] reached cap of {max_posts}, stopping early")
+            break
+
         phrase = target["phrase"]
         candidates = search_reddit_global(phrase, time_filter=time_filter, limit=candidate_limit)
         errors = [post["error"] for post in candidates if "error" in post]
@@ -58,6 +63,7 @@ def run(config: dict[str, Any]) -> int:
             f"{len(rows)} passed >= {PHRASE_MATCH_THRESHOLD:.0%} match"
         )
 
-        total += db.upsert_posts("phrase", rows[:limit])
+        rows = rows[:limit][: max_posts - total]
+        total += db.upsert_posts("phrase", rows)
 
     return total

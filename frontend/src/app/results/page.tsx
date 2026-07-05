@@ -19,14 +19,22 @@ export default async function ResultsPage({
   const filters = parseFilters(rawParams);
   const posts = await fetchFilteredPosts(filters);
 
-  const exportHref = `/api/export?${buildQueryString({
+  const baseParams = {
     mode: filters.mode,
     q: filters.q,
     subreddit: filters.subreddit,
     minScore: filters.minScore?.toString(),
     sort: filters.sort,
     limit: filters.limit?.toString(),
-  })}`;
+  };
+
+  const exportHref = `/api/export?${buildQueryString(baseParams)}`;
+  const closeHref = `/results?${buildQueryString(baseParams)}`;
+  const openPostHref = (id: number) => `/results?${buildQueryString({ ...baseParams, post: String(id) })}`;
+
+  const selectedPost = rawParams.post
+    ? posts.find((post) => String(post.id) === rawParams.post)
+    : undefined;
 
   return (
     <div className="flex flex-col gap-6">
@@ -139,8 +147,14 @@ export default async function ResultsPage({
                 key={post.id}
                 className="border-t border-border transition-colors hover:bg-surface-hover"
               >
-                <td className="px-4 py-2.5 max-w-md truncate" title={post.title}>
-                  {post.title}
+                <td className="px-4 py-2.5 max-w-md truncate">
+                  <a
+                    href={openPostHref(post.id)}
+                    title={post.title}
+                    className="hover:text-accent hover:underline underline-offset-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent rounded-sm"
+                  >
+                    {post.title}
+                  </a>
                 </td>
                 <td className="px-4 py-2.5 text-muted">r/{post.subreddit}</td>
                 <td className="px-4 py-2.5 tabular-nums">{post.score}</td>
@@ -186,6 +200,76 @@ export default async function ResultsPage({
           </tbody>
         </table>
       </div>
+
+      {selectedPost && (
+        <>
+          <a
+            href={closeHref}
+            aria-label="Close post detail"
+            className="fixed inset-0 z-40 bg-black/50 backdrop-blur-sm"
+          />
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 pointer-events-none">
+            <div className="pointer-events-auto relative w-full max-w-2xl max-h-[85vh] overflow-y-auto rounded-2xl border border-border bg-surface p-6 shadow-xl">
+              <a
+                href={closeHref}
+                aria-label="Close"
+                className="absolute top-4 right-4 rounded-full p-1.5 text-muted transition-colors hover:bg-surface-hover hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+              >
+                <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                  <path
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    d="M6 6l12 12M18 6L6 18"
+                  />
+                </svg>
+              </a>
+
+              <div className="flex items-center gap-2 text-xs text-muted">
+                <span>r/{selectedPost.subreddit}</span>
+                <span>·</span>
+                <span>
+                  {selectedPost.created_utc
+                    ? new Date(selectedPost.created_utc * 1000).toLocaleString()
+                    : "unknown date"}
+                </span>
+              </div>
+
+              <h2 className="mt-2 pr-8 text-lg font-semibold tracking-tight text-balance">
+                {selectedPost.title}
+              </h2>
+
+              <div className="mt-3 flex items-center gap-3 text-sm text-muted tabular-nums">
+                <span>{selectedPost.score} score</span>
+                <span>{selectedPost.num_comments} comments</span>
+                {selectedPost.match_score && (
+                  <span className="rounded-full bg-accent/10 px-2 py-0.5 text-xs font-medium text-accent">
+                    {Math.round(selectedPost.match_score * 100)}% match
+                  </span>
+                )}
+              </div>
+
+              {selectedPost.selftext ? (
+                <p className="mt-4 whitespace-pre-wrap text-sm leading-relaxed text-foreground">
+                  {selectedPost.selftext}
+                </p>
+              ) : (
+                <p className="mt-4 text-sm text-muted">
+                  This post has no body text (likely a link or image post).
+                </p>
+              )}
+
+              <a
+                href={selectedPost.permalink}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="mt-5 inline-flex items-center gap-2 rounded-lg bg-accent px-4 py-1.5 text-sm font-medium text-accent-foreground shadow-sm shadow-accent/30 transition-all duration-150 hover:bg-accent-hover active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+              >
+                Open on Reddit
+              </a>
+            </div>
+          </div>
+        </>
+      )}
     </div>
   );
 }

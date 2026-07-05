@@ -15,6 +15,7 @@ export async function updateConfig(formData: FormData) {
     .map((value) => value.trim())
     .filter(Boolean);
   const limitPerTarget = Number(formData.get("limit_per_target") ?? 25);
+  const maxPostsPerRun = Number(formData.get("max_posts_per_run") ?? 50);
   const timeFilter = String(formData.get("time_filter") ?? "month");
 
   const supabase = getSupabaseClient();
@@ -25,6 +26,7 @@ export async function updateConfig(formData: FormData) {
       scheduled_times: scheduledTimes,
       times_per_day: scheduledTimes.length,
       limit_per_target: limitPerTarget,
+      max_posts_per_run: maxPostsPerRun,
       time_filter: timeFilter,
       updated_at: new Date().toISOString(),
     })

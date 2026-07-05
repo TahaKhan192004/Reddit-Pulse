@@ -11,12 +11,17 @@ from reddit_scraper import search_reddit_global
 def run(config: dict[str, Any]) -> int:
     limit = config["limit_per_target"]
     time_filter = config["time_filter"]
+    max_posts = config.get("max_posts_per_run", 50)
 
     targets = db.get_active_targets("keyword")
-    print(f"[keyword] {len(targets)} active keyword(s)")
+    print(f"[keyword] {len(targets)} active keyword(s), cap {max_posts} post(s)/run")
 
     total = 0
     for target in targets:
+        if total >= max_posts:
+            print(f"[keyword] reached cap of {max_posts}, stopping early")
+            break
+
         keyword = target["keyword"]
         posts = search_reddit_global(keyword, time_filter=time_filter, limit=limit)
         errors = [post["error"] for post in posts if "error" in post]
@@ -36,7 +41,7 @@ def run(config: dict[str, Any]) -> int:
             }
             for post in posts
             if "error" not in post and post.get("permalink")
-        ]
+        ][: max_posts - total]
 
         print(
             f"[keyword] '{keyword}': {len(posts)} fetched, "
