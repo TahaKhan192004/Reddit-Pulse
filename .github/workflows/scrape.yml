@@ -1,0 +1,35 @@
+name: Reddit Scrape
+
+on:
+  schedule:
+    - cron: "*/15 * * * *"
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: "Which mode to run"
+        type: choice
+        options: [all, keyword, phrase, subreddit]
+        default: all
+      force:
+        description: "Ignore the schedule and run now"
+        type: boolean
+        default: true
+
+jobs:
+  scrape:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - run: pip install -r requirements.txt
+
+      - name: Run scraper
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: |
+          python run.py --mode "${{ inputs.mode || 'all' }}" ${{ inputs.force && '--force' || '' }}

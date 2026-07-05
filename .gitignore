@@ -1,0 +1,7 @@
+.env
+__pycache__/
+*.pyc
+
+# Claude Code local/session state (not shared team config)
+.claude/settings.local.json
+.claude/scheduled_tasks.lock

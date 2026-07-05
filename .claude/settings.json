@@ -1,0 +1,10 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(python -m py_compile reddit_scraper.py matching.py db.py run.py scrapers/keyword_scraper.py scrapers/phrase_scraper.py scrapers/subreddit_scraper.py frontend/app.py)",
+      "Bash(python -c ' *)",
+      "Bash(python -m py_compile reddit_scraper.py)",
+      "Bash(npx --yes create-next-app@latest frontend --typescript --tailwind --eslint --app --src-dir --import-alias \"@/*\" --use-npm --no-turbopack --yes)"
+    ]
+  }
+}
