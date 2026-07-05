@@ -37,7 +37,7 @@ export default async function TargetsPage({
         </p>
       </div>
 
-      <div className="flex gap-2">
+      <div className="flex flex-wrap gap-2">
         {MODES.map((m) => (
           <Link
             key={m}
@@ -65,7 +65,7 @@ export default async function TargetsPage({
         <SubmitButton pendingLabel="Adding…">Add</SubmitButton>
       </form>
 
-      <div className="rounded-2xl border border-border bg-surface overflow-hidden shadow-sm">
+      <div className="rounded-2xl border border-border bg-surface overflow-x-auto shadow-sm">
         <table className="w-full text-sm">
           <thead className="bg-background text-left">
             <tr>
