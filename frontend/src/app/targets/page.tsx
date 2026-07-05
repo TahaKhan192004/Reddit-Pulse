@@ -1,6 +1,8 @@
 import Link from "next/link";
 import { getSupabaseClient } from "@/lib/supabase";
 import { Mode, MODES, TARGET_COLUMNS, TARGET_TABLES, TargetRow } from "@/lib/types";
+import { inputClass } from "@/lib/ui";
+import { SubmitButton } from "@/components/SubmitButton";
 import { addTarget, deleteTarget, toggleActivated } from "./actions";
 
 function isMode(value: string | undefined): value is Mode {
@@ -29,8 +31,8 @@ export default async function TargetsPage({
   return (
     <div className="flex flex-col gap-6">
       <div>
-        <h1 className="text-2xl font-semibold">Targets</h1>
-        <p className="text-sm text-black/60 dark:text-white/60">
+        <h1 className="text-2xl font-semibold tracking-tight">Targets</h1>
+        <p className="text-sm text-muted">
           Manage keywords, phrases, and subreddits used by the scraper.
         </p>
       </div>
@@ -40,10 +42,10 @@ export default async function TargetsPage({
           <Link
             key={m}
             href={`/targets?mode=${m}`}
-            className={`rounded-full px-4 py-1.5 text-sm capitalize border ${
+            className={`rounded-full px-4 py-1.5 text-sm font-medium capitalize border transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent ${
               m === mode
-                ? "bg-black text-white dark:bg-white dark:text-black border-transparent"
-                : "border-black/10 dark:border-white/15 hover:bg-black/5 dark:hover:bg-white/10"
+                ? "bg-accent text-accent-foreground border-transparent"
+                : "border-border text-muted hover:bg-surface-hover hover:text-foreground"
             }`}
           >
             {m}s
@@ -58,31 +60,29 @@ export default async function TargetsPage({
           name="value"
           placeholder={`New ${column}`}
           required
-          className="flex-1 rounded-md border border-black/10 dark:border-white/15 bg-transparent px-3 py-1.5 text-sm"
+          className={`flex-1 ${inputClass}`}
         />
-        <button
-          type="submit"
-          className="rounded-md bg-black text-white dark:bg-white dark:text-black px-4 py-1.5 text-sm font-medium"
-        >
-          Add
-        </button>
+        <SubmitButton pendingLabel="Adding…">Add</SubmitButton>
       </form>
 
-      <div className="rounded-xl border border-black/10 dark:border-white/10 overflow-hidden">
+      <div className="rounded-2xl border border-border bg-surface overflow-hidden shadow-sm">
         <table className="w-full text-sm">
-          <thead className="bg-black/5 dark:bg-white/10 text-left">
+          <thead className="bg-background text-left">
             <tr>
-              <th className="px-4 py-2 capitalize">{column}</th>
-              <th className="px-4 py-2">Status</th>
-              <th className="px-4 py-2">Added</th>
-              <th className="px-4 py-2 w-32"></th>
+              <th className="px-4 py-2.5 font-medium text-muted capitalize">{column}</th>
+              <th className="px-4 py-2.5 font-medium text-muted">Status</th>
+              <th className="px-4 py-2.5 font-medium text-muted">Added</th>
+              <th className="px-4 py-2.5 w-32"></th>
             </tr>
           </thead>
           <tbody>
             {rows.map((row) => (
-              <tr key={row.id} className="border-t border-black/5 dark:border-white/10">
-                <td className="px-4 py-2">{row[column as keyof TargetRow] as string}</td>
-                <td className="px-4 py-2">
+              <tr
+                key={row.id}
+                className="border-t border-border transition-colors hover:bg-surface-hover"
+              >
+                <td className="px-4 py-2.5">{row[column as keyof TargetRow] as string}</td>
+                <td className="px-4 py-2.5">
                   <form action={toggleActivated}>
                     <input type="hidden" name="mode" value={mode} />
                     <input type="hidden" name="id" value={row.id} />
@@ -91,39 +91,37 @@ export default async function TargetsPage({
                       name="next_activated"
                       value={(!row.activated).toString()}
                     />
-                    <button
-                      type="submit"
-                      className={`rounded-full px-2 py-0.5 text-xs ${
+                    <SubmitButton
+                      pendingLabel="…"
+                      variant="ghost"
+                      className={`!px-2.5 !py-1 !rounded-full !text-xs ${
                         row.activated
-                          ? "bg-green-500/15 text-green-600 dark:text-green-400"
-                          : "bg-black/10 dark:bg-white/10 text-black/50 dark:text-white/50"
+                          ? "bg-success-bg text-success hover:bg-success-bg"
+                          : "bg-background text-muted"
                       }`}
                     >
                       {row.activated ? "Active" : "Inactive"}
-                    </button>
+                    </SubmitButton>
                   </form>
                 </td>
-                <td className="px-4 py-2 text-black/50 dark:text-white/50">
+                <td className="px-4 py-2.5 text-muted">
                   {new Date(row.created_at).toLocaleDateString()}
                 </td>
-                <td className="px-4 py-2 text-right">
+                <td className="px-4 py-2.5 text-right">
                   <form action={deleteTarget}>
                     <input type="hidden" name="mode" value={mode} />
                     <input type="hidden" name="id" value={row.id} />
-                    <button
-                      type="submit"
-                      className="text-xs text-red-500 hover:underline"
-                    >
+                    <SubmitButton pendingLabel="…" variant="danger" className="!px-2.5 !py-1">
                       Delete
-                    </button>
+                    </SubmitButton>
                   </form>
                 </td>
               </tr>
             ))}
             {rows.length === 0 && (
               <tr>
-                <td colSpan={4} className="px-4 py-6 text-center text-black/40 dark:text-white/40">
-                  No {mode}s yet.
+                <td colSpan={4} className="px-4 py-10 text-center text-muted">
+                  No {mode}s yet — add one above to get started.
                 </td>
               </tr>
             )}
