@@ -1,11 +1,11 @@
-"""Scrape Reddit public JSON endpoints without API credentials."""
+"""Scrape Reddit via app-only OAuth (client_credentials) — no user login required."""
 
 from __future__ import annotations
 
 import os
 import time
 from typing import Any
-from urllib.parse import quote_plus
+from urllib.parse import quote_plus, urlparse, urlunparse
 
 import requests
 
@@ -18,6 +18,54 @@ HEADERS = {
     "Accept-Language": "en-US,en;q=0.9",
 }
 VALID_TIME_FILTERS = {"day", "week", "month", "year", "all"}
+OAUTH_BASE = "https://oauth.reddit.com"
+
+_token_cache: dict[str, Any] = {"token": None, "expires_at": 0.0}
+
+
+def _get_access_token() -> str:
+    now = time.time()
+    if _token_cache["token"] and now < _token_cache["expires_at"]:
+        return _token_cache["token"]
+
+    client_id = os.environ.get("REDDIT_CLIENT_ID")
+    client_secret = os.environ.get("REDDIT_CLIENT_SECRET")
+    if not client_id or not client_secret:
+        raise RuntimeError("REDDIT_CLIENT_ID and REDDIT_CLIENT_SECRET must be set")
+
+    last_error = ""
+    for attempt in range(3):
+        try:
+            response = requests.post(
+                "https://www.reddit.com/api/v1/access_token",
+                data={"grant_type": "client_credentials"},
+                auth=(client_id, client_secret),
+                headers={"User-Agent": USER_AGENT},
+                timeout=20,
+            )
+        except requests.RequestException as exc:
+            last_error = f"Token request failed: {exc}"
+            time.sleep(8)
+            continue
+
+        if response.status_code == 200:
+            payload = response.json()
+            token = payload["access_token"]
+            expires_in = payload.get("expires_in", 3600)
+            _token_cache["token"] = token
+            _token_cache["expires_at"] = now + expires_in - 60
+            return token
+
+        last_error = f"Reddit OAuth token request failed: HTTP {response.status_code}"
+        if attempt < 2:
+            time.sleep(8)
+
+    raise RuntimeError(last_error)
+
+
+def _to_oauth_url(url: str) -> str:
+    parsed = urlparse(url)
+    return urlunparse(parsed._replace(scheme="https", netloc="oauth.reddit.com"))
 
 
 def _error(message: str) -> list[dict[str, Any]]:
@@ -41,13 +89,19 @@ def _get_json(url: str) -> Any:
 
     for attempt in range(2):
         try:
-            response = requests.get(url, headers=HEADERS, timeout=20)
-        except requests.RequestException as exc:
+            token = _get_access_token()
+            headers = {**HEADERS, "Authorization": f"Bearer {token}"}
+            response = requests.get(url, headers=headers, timeout=20)
+        except (requests.RequestException, RuntimeError) as exc:
             last_error = f"Request failed: {exc}"
             break
 
         if response.status_code == 429 and attempt == 0:
             time.sleep(10)
+            continue
+
+        if response.status_code == 401 and attempt == 0:
+            _token_cache["token"] = None
             continue
 
         if response.status_code != 200:
@@ -108,7 +162,7 @@ def fetch_top_posts(subreddit: str, time_filter: str = "month", limit: int = 25)
     subreddit = subreddit.strip().lstrip("r/")
     time_filter = _normalize_time_filter(time_filter)
     limit = _normalize_limit(limit)
-    url = f"https://www.reddit.com/r/{quote_plus(subreddit)}/top.json?t={time_filter}&limit={limit}"
+    url = f"{OAUTH_BASE}/r/{quote_plus(subreddit)}/top.json?t={time_filter}&limit={limit}"
 
     try:
         return _parse_posts(_get_json(url))
@@ -126,7 +180,7 @@ def fetch_comments(permalink: str, limit: int = 15) -> list[dict[str, Any]]:
     if not base_url.startswith("http"):
         base_url = f"https://reddit.com{base_url if base_url.startswith('/') else '/' + base_url}"
     base_url = base_url.split("?")[0].rstrip("/")
-    url = f"{base_url}.json?limit={limit}&sort=top"
+    url = _to_oauth_url(f"{base_url}.json?limit={limit}&sort=top")
 
     try:
         response_json = _get_json(url)
@@ -173,7 +227,7 @@ def search_subreddit(
     limit = _normalize_limit(limit, default=20)
     encoded_query = quote_plus(query)
     url = (
-        f"https://www.reddit.com/r/{quote_plus(subreddit)}/search.json"
+        f"{OAUTH_BASE}/r/{quote_plus(subreddit)}/search.json"
         f"?q={encoded_query}&sort=relevance&t={time_filter}&limit={limit}&restrict_sr=1"
     )
 
@@ -196,7 +250,7 @@ def search_reddit_global(
     limit = _normalize_limit(limit, default=25)
     encoded_query = quote_plus(query)
     url = (
-        "https://www.reddit.com/search.json"
+        f"{OAUTH_BASE}/search.json"
         f"?q={encoded_query}&sort=relevance&t={time_filter}&limit={limit}"
     )
 
