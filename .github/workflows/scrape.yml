@@ -31,5 +31,6 @@ jobs:
         env:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          PYTHONUNBUFFERED: "1"
         run: |
-          python run.py --mode "${{ inputs.mode || 'all' }}" ${{ inputs.force && '--force' || '' }}
+          python -u run.py --mode "${{ inputs.mode || 'all' }}" ${{ inputs.force && '--force' || '' }}

@@ -17,10 +17,14 @@ def run(config: dict[str, Any]) -> int:
     time_filter = config["time_filter"]
     candidate_limit = min(limit * CANDIDATE_MULTIPLIER, CANDIDATE_LIMIT_CAP)
 
+    targets = db.get_active_targets("phrase")
+    print(f"[phrase] {len(targets)} active phrase(s)")
+
     total = 0
-    for target in db.get_active_targets("phrase"):
+    for target in targets:
         phrase = target["phrase"]
         candidates = search_reddit_global(phrase, time_filter=time_filter, limit=candidate_limit)
+        errors = [post["error"] for post in candidates if "error" in post]
 
         rows = []
         for post in candidates:
@@ -47,6 +51,12 @@ def run(config: dict[str, Any]) -> int:
                     "match_score": round(match_score, 4),
                 }
             )
+
+        print(
+            f"[phrase] '{phrase}': {len(candidates)} candidates, "
+            f"{len(errors)} error(s){f' e.g. {errors[0]}' if errors else ''}, "
+            f"{len(rows)} passed >= {PHRASE_MATCH_THRESHOLD:.0%} match"
+        )
 
         total += db.upsert_posts("phrase", rows[:limit])
 

@@ -12,10 +12,14 @@ def run(config: dict[str, Any]) -> int:
     limit = config["limit_per_target"]
     time_filter = config["time_filter"]
 
+    targets = db.get_active_targets("keyword")
+    print(f"[keyword] {len(targets)} active keyword(s)")
+
     total = 0
-    for target in db.get_active_targets("keyword"):
+    for target in targets:
         keyword = target["keyword"]
         posts = search_reddit_global(keyword, time_filter=time_filter, limit=limit)
+        errors = [post["error"] for post in posts if "error" in post]
 
         rows = [
             {
@@ -33,6 +37,12 @@ def run(config: dict[str, Any]) -> int:
             for post in posts
             if "error" not in post and post.get("permalink")
         ]
+
+        print(
+            f"[keyword] '{keyword}': {len(posts)} fetched, "
+            f"{len(errors)} error(s){f' e.g. {errors[0]}' if errors else ''}, "
+            f"{len(rows)} usable"
+        )
 
         total += db.upsert_posts("keyword", rows)
 
