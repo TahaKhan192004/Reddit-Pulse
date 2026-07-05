@@ -11,7 +11,7 @@ import requests
 
 
 # Plain, descriptive UA — not spoofing a browser. Override via env var if needed.
-USER_AGENT = os.environ.get("REDDIT_USER_AGENT", "RedditContentScraper/1.0 (research bot; no scraping)")
+USER_AGENT = os.environ.get("REDDIT_USER_AGENT") or "RedditContentScraper/1.0 (research bot; no scraping)"
 HEADERS = {
     "User-Agent": USER_AGENT,
     "Accept": "application/json",
@@ -157,12 +157,27 @@ def _parse_posts(response_json: dict[str, Any]) -> list[dict[str, Any]]:
 
 
 def fetch_top_posts(subreddit: str, time_filter: str = "month", limit: int = 25) -> list[dict[str, Any]]:
-    """Fetch top posts from a subreddit using Reddit's public .json endpoint."""
+    """Fetch top (score-ranked) posts from a subreddit using Reddit's public .json endpoint."""
 
     subreddit = subreddit.strip().lstrip("r/")
     time_filter = _normalize_time_filter(time_filter)
     limit = _normalize_limit(limit)
     url = f"{OAUTH_BASE}/r/{quote_plus(subreddit)}/top.json?t={time_filter}&limit={limit}"
+
+    try:
+        return _parse_posts(_get_json(url))
+    except Exception as exc:
+        return _error(str(exc))
+    finally:
+        time.sleep(1)
+
+
+def fetch_new_posts(subreddit: str, limit: int = 25) -> list[dict[str, Any]]:
+    """Fetch the newest posts from a subreddit, newest first. No time window — /new is always chronological."""
+
+    subreddit = subreddit.strip().lstrip("r/")
+    limit = _normalize_limit(limit)
+    url = f"{OAUTH_BASE}/r/{quote_plus(subreddit)}/new.json?limit={limit}"
 
     try:
         return _parse_posts(_get_json(url))
@@ -228,7 +243,7 @@ def search_subreddit(
     encoded_query = quote_plus(query)
     url = (
         f"{OAUTH_BASE}/r/{quote_plus(subreddit)}/search.json"
-        f"?q={encoded_query}&sort=relevance&t={time_filter}&limit={limit}&restrict_sr=1"
+        f"?q={encoded_query}&sort=new&t={time_filter}&limit={limit}&restrict_sr=1"
     )
 
     try:
@@ -251,7 +266,7 @@ def search_reddit_global(
     encoded_query = quote_plus(query)
     url = (
         f"{OAUTH_BASE}/search.json"
-        f"?q={encoded_query}&sort=relevance&t={time_filter}&limit={limit}"
+        f"?q={encoded_query}&sort=new&t={time_filter}&limit={limit}"
     )
 
     try:

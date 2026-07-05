@@ -1,16 +1,15 @@
-"""Subreddit-based scraping: fetch top posts from each active subreddit."""
+"""Subreddit-based scraping: fetch the newest posts from each active subreddit."""
 
 from __future__ import annotations
 
 from typing import Any
 
 import db
-from reddit_scraper import fetch_top_posts
+from reddit_scraper import fetch_new_posts
 
 
 def run(config: dict[str, Any]) -> int:
     limit = config["limit_per_target"]
-    time_filter = config["time_filter"]
     max_posts = config.get("max_posts_per_run", 50)
 
     targets = db.get_active_targets("subreddit")
@@ -23,7 +22,7 @@ def run(config: dict[str, Any]) -> int:
             break
 
         subreddit = target["subreddit"]
-        posts = fetch_top_posts(subreddit, time_filter=time_filter, limit=limit)
+        posts = fetch_new_posts(subreddit, limit=limit)
         errors = [post["error"] for post in posts if "error" in post]
 
         rows = [
