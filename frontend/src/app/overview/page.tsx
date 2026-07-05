@@ -1,6 +1,6 @@
 import { getSupabaseClient } from "@/lib/supabase";
 import { ConfigRow, MODES, POSTS_TABLES, TARGET_TABLES } from "@/lib/types";
-import { updateConfig } from "./actions";
+import { triggerRun, updateConfig } from "./actions";
 
 const TIME_FILTERS = ["day", "week", "month", "year", "all"] as const;
 
@@ -35,17 +35,45 @@ function formatDate(value: string | null) {
   return new Date(value).toLocaleString();
 }
 
-export default async function OverviewPage() {
+export default async function OverviewPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ ran?: string; error?: string }>;
+}) {
   const { configRows, postCounts, activeTargetCounts } = await getData();
+  const params = await searchParams;
 
   return (
     <div className="flex flex-col gap-6">
-      <div>
-        <h1 className="text-2xl font-semibold">Overview</h1>
-        <p className="text-sm text-black/60 dark:text-white/60">
-          Per-mode schedule, limits, and run status.
-        </p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-semibold">Overview</h1>
+          <p className="text-sm text-black/60 dark:text-white/60">
+            Per-mode schedule, limits, and run status.
+          </p>
+        </div>
+
+        <form action={triggerRun}>
+          <input type="hidden" name="mode" value="all" />
+          <button
+            type="submit"
+            className="rounded-md bg-black text-white dark:bg-white dark:text-black px-4 py-1.5 text-sm font-medium"
+          >
+            Run all now
+          </button>
+        </form>
       </div>
+
+      {params.ran && (
+        <div className="rounded-md bg-green-500/10 text-green-600 dark:text-green-400 text-sm px-3 py-2">
+          Triggered a &quot;{params.ran}&quot; run on GitHub Actions. Check the Actions tab for progress.
+        </div>
+      )}
+      {params.error && (
+        <div className="rounded-md bg-red-500/10 text-red-600 dark:text-red-400 text-sm px-3 py-2">
+          Failed to trigger run: {params.error}
+        </div>
+      )}
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         {MODES.map((mode) => {
@@ -130,12 +158,21 @@ export default async function OverviewPage() {
                 Last run: {formatDate(config.last_run_at)}
               </div>
 
-              <button
-                type="submit"
-                className="mt-1 rounded-md bg-black text-white dark:bg-white dark:text-black py-1.5 text-sm font-medium"
-              >
-                Save
-              </button>
+              <div className="flex gap-2">
+                <button
+                  type="submit"
+                  className="flex-1 rounded-md bg-black text-white dark:bg-white dark:text-black py-1.5 text-sm font-medium"
+                >
+                  Save
+                </button>
+                <button
+                  type="submit"
+                  formAction={triggerRun}
+                  className="flex-1 rounded-md border border-black/15 dark:border-white/20 py-1.5 text-sm font-medium hover:bg-black/5 dark:hover:bg-white/10"
+                >
+                  Run now
+                </button>
+              </div>
             </form>
           );
         })}
